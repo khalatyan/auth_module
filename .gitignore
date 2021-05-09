@@ -1,2 +1,3 @@
 .git
 .env
+/auth_module/local_settings.py
