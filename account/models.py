@@ -7,7 +7,6 @@ class Company(models.Model):
         verbose_name_plural = 'Организации'
 
     title  = models.CharField(verbose_name='Организация', max_length=512)
-    moderator_for = models.ForeignKey(User, verbose_name='Модератор для организации', blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.title or '-'
@@ -33,7 +32,6 @@ class Profile(models.Model):
         ordering = ['-user__date_joined']
 
     user = models.OneToOneField(to=User, on_delete=models.CASCADE, related_name='profile')
-    company = models.ForeignKey(Company, verbose_name='Организация', blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return self.user.username or '-'
@@ -45,7 +43,7 @@ class Section(models.Model):
         verbose_name_plural = 'Разделы'
 
     title  = models.CharField(verbose_name='Раздел', max_length=512)
-    company = models.ForeignKey(Company, verbose_name='Организация', blank=True, null=True, on_delete=models.SET_NULL)
+    company = models.ForeignKey(verbose_name='Компания',to=Company,on_delete=models.CASCADE)
 
 
 class AccessLevel(models.Model):
@@ -54,19 +52,20 @@ class AccessLevel(models.Model):
         verbose_name_plural = 'Уровни доступа'
 
     title  = models.CharField(verbose_name='Уровень доступа', max_length=512)
+    description = models.TextField(verbose_name='Описание',null=True,blank=True)
 
     def __str__(self):
         return self.title or '-'
 
 
-class UserAccessLevel(models.Model):
+class Role(models.Model):
     class Meta:
-        verbose_name = 'уровень доступа для раздела'
-        verbose_name_plural = 'Уровни доступа для раздела'
+        verbose_name = 'Роль пользователя'
+        verbose_name_plural = 'Роли пользователя'
 
-    user = models.ForeignKey(verbose_name='Пользователь', to=Profile, unique=False, on_delete=models.CASCADE)
-    section = models.ForeignKey(verbose_name='Раздел', to=Section, unique=False, on_delete=models.CASCADE)
-    access_level = models.ForeignKey(verbose_name='Уровень доступа', to=AccessLevel, unique=False, on_delete=models.CASCADE)
+    title  = models.CharField(verbose_name='Уровень доступа', max_length=512)
+    description = models.TextField(verbose_name='Описание',null=True,blank=True)
+    company = models.ForeignKey(verbose_name='Компания',to=Company,on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.access_level.title or '-'
+        return self.title or '-'

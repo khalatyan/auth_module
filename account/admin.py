@@ -27,7 +27,7 @@ from reversion.admin import VersionAdmin
 from import_export.admin import ExportMixin
 from adminsortable2.admin import SortableAdminMixin
 
-from account.models import Profile, UserProxy, Company, Section, AccessLevel, UserAccessLevel
+from account.models import Profile, UserProxy, Company, Section, AccessLevel, Role
 from account.resources import UserResource
 
 
@@ -218,28 +218,15 @@ class SectionInline(admin.StackedInline):
     extra = 0
 
 
-class UserAccessLevelInline(admin.StackedInline):
-    model = UserAccessLevel
-    extra = 0
-
 
 @admin.register(Profile)
 class ProfileAdmin(VersionAdmin):
-    list_display = ["user", "company"]
+    list_display = ["user"]
     save_on_top = True
     save_as = True
-    inlines = [UserAccessLevelInline]
-
-# @admin.register(Company)
-# class CompanyAdmin(VersionAdmin):
-#     list_display = ['title']
-#     list_filter = ['title']
-#     save_on_top = True
-#     save_as = True
-#     inlines = [SectionInline]
 
 
-@admin.register(AccessLevel)
+@admin.register(Company)
 class CompanyAdmin(VersionAdmin):
     list_display = ['title']
     list_filter = ['title']
@@ -247,9 +234,25 @@ class CompanyAdmin(VersionAdmin):
     save_as = True
 
 
-@admin.register(UserAccessLevel)
-class UserAccessLevelAdmin(VersionAdmin):
-    list_display = ['user', 'section', 'access_level']
-    list_filter = ['user', 'section', 'access_level']
+@admin.register(Section)
+class SectionAdmin(VersionAdmin):
+    list_display = ['title', 'company']
+    list_filter = ['title', 'company']
+    save_on_top = True
+    save_as = True
+
+
+@admin.register(AccessLevel)
+class AccessLevelAdmin(VersionAdmin):
+    list_display = ['title', 'description']
+    list_filter = ['title', 'description']
+    save_on_top = True
+    save_as = True
+
+
+@admin.register(Role)
+class RoleAdmin(VersionAdmin):
+    list_display = ['title', 'description', 'company']
+    list_filter = ['title', 'description', 'company']
     save_on_top = True
     save_as = True
