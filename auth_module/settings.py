@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'import_export',
     'reversion',
     'adminsortable2',
+    'mptt',
 
     'account',
 ]

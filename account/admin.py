@@ -26,6 +26,7 @@ from django.db.models import Q
 from reversion.admin import VersionAdmin
 from import_export.admin import ExportMixin
 from adminsortable2.admin import SortableAdminMixin
+from mptt.admin import DraggableMPTTAdmin
 
 from account.models import Profile, UserProxy, Company, Section, \
     Role, AccessLevel_Section_Role, AccessLevel_Section_User
@@ -238,9 +239,9 @@ class CompanyAdmin(VersionAdmin):
 
 
 @admin.register(Section)
-class SectionAdmin(VersionAdmin):
-    list_display = ['title', 'company']
-    list_filter = ['title', 'company']
+class SectionAdmin(DraggableMPTTAdmin, VersionAdmin):
+    mptt_indent_field = "title"
+    list_display = ['tree_actions', 'indented_title']
     save_on_top = True
     save_as = True
 

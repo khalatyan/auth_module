@@ -1,5 +1,9 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
+
+from mptt.models import MPTTModel, TreeForeignKey
 
 ACCESS_LEVEL = [
     (1, 'Read (R)'),
@@ -9,8 +13,6 @@ ACCESS_LEVEL = [
     (5, 'Execute (E)')
 ]
 
-
-
 class Company(models.Model):
     class Meta:
         verbose_name = 'организация'
@@ -18,6 +20,7 @@ class Company(models.Model):
 
     title  = models.CharField(verbose_name='Организация', max_length=512)
     moderator = models.ManyToManyField(User, verbose_name="Модератор")
+    organization_id = models.CharField(verbose_name="ID организации", max_length=126, default=uuid.uuid4())
 
     def __str__(self):
         return self.title or '-'
@@ -36,16 +39,20 @@ class UserProxy(User):
     get_name.allow_tags = True
 
 
-class Section(models.Model):
+class Section(MPTTModel):
     class Meta:
         verbose_name = 'раздел'
         verbose_name_plural = 'Разделы'
 
+    parent = TreeForeignKey('self', verbose_name=u'Родитель', blank=True, null=True, on_delete=models.SET_NULL)
     title  = models.CharField(verbose_name='Раздел', max_length=512)
     company = models.ForeignKey(verbose_name='Компания',to=Company,on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title or '-'
+
+    class MPTTMeta:
+        order_insertion_by = ['title']
 
 
 class Role(models.Model):
