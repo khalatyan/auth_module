@@ -74,7 +74,7 @@ class Profile(models.Model):
         ordering = ['-user__date_joined']
 
     user = models.ForeignKey(to=User, on_delete=models.CASCADE, related_name='profile')
-    roles = models.ManyToManyField(Role, verbose_name="Роли пользователя")
+    roles = models.ManyToManyField(Role, verbose_name="Роли пользователя", blank=True)
 
     def __str__(self):
         return self.user.username or '-'
