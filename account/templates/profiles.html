@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Пользователь</th>
+                <th scope="col">Роль</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in profiles %}
+              <tr id="el_{{access_level.id}}">
+                <td>
+                  <a href="/profiles/user_{{item.0.id}}">
+                    {{item.0}}({{item.0.user.first_name}} {{item.0.user.last_name}})
+                  </a>
+                </td>
+                <td>
+                  {% for role in item.1 %}
+                  <a href="/role/#collapseRole{{role.id}}">{{role}}</a>
+                  {% endfor %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+{% endblock %}

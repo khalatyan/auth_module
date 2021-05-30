@@ -1,16 +1,16 @@
 import uuid
 
+
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 
 from mptt.models import MPTTModel, TreeForeignKey
 
 ACCESS_LEVEL = [
-    (1, 'Read (R)'),
-    (2, 'Insert (I)'),
-    (3, 'Update (U)'),
-    (4, 'Delete (D)'),
-    (5, 'Execute (E)')
+    (1, 'Запрет'),
+    (2, 'Чтение'),
+    (3, 'Редактирование'),
 ]
 
 class Company(models.Model):
@@ -78,6 +78,26 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username or '-'
+
+    def save(self, *args, **kwargs):
+
+        roles = self.roles.values_list('id', flat=True)
+        acces_level_roles = AccessLevel_Section_Role.objects.filter(role__in=roles)
+
+        for acces_leve_role in acces_level_roles:
+            access_level_profile = AccessLevel_Section_User.objects.filter(Q(user=self) & Q(section=acces_leve_role.section)).first()
+
+            if not access_level_profile:
+                AccessLevel_Section_User.objects.create(
+                    user=self,
+                    access_level=acces_leve_role.access_level,
+                    section=acces_leve_role.section
+                )
+            elif (access_level_profile.access_level < acces_leve_role.access_level):
+                access_level_profile.access_level = acces_leve_role.access_level
+                access_level_profile.save()
+                
+        super().save(*args, **kwargs)
 
 
 class AccessLevel_Section_User(models.Model):

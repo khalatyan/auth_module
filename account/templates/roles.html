@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+<div class="accordion" id="accordionExample">
+  {%for item in roles%}
+    <div class="card">
+      <div class="card-header" id="headingOne">
+        <h2 class="mb-0">
+          <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapseRole{{item.0.id}}" aria-expanded="true" aria-controls="collapseOne">
+            {{item.0}}
+          </button>
+        </h2>
+      </div>
+
+      <div id="collapseRole{{item.0.id}}" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+        <div class="card-body">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Раздел</th>
+                <th scope="col">Роль</th>
+                <th scope="col">Уровень доступа</th>
+                <th class="text-center" scope="col">Редактировать</th>
+                <th class="text-center" scope="col">Удалить</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for access_level in item.1%}
+              <tr id="el_{{access_level.id}}">
+                <td>{{access_level.section}}</td>
+                <td>{{access_level.role}}</td>
+                <td>{{access_level.access_level}}</td>
+                <td class="text-center"><i class="fa fa-pencil text-primary" aria-hidden="true" id="red_{{access_level.id}}"></i></td>
+                <td class="text-center"><i class="fa fa-times text-danger" aria-hidden="true" id="del_{{access_level.id}}"></i></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <a href="#" class="text-decoration-none"><i class="fa fa-plus" aria-hidden="true"></i> добавить уровень доступа</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-link active" id="nav-role-tab" data-toggle="tab" href="#nav-role" role="tab" aria-controls="nav-role" aria-selected="true">Роли</a>
+    <a class="nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-profile" role="tab" aria-controls="nav-profile" aria-selected="false">Уровни доступа по разделам</a>
+  </div>
+</nav>
+
+
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-role" role="tabpanel" aria-labelledby="nav-role-tab">
+    <div class="card mt-3">
+      <div class="card-body">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Роли</th>
+              <th scope="col" class="text-end">Удалить</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for role in profile_roles %}
+            <tr>
+              <td>
+                <a href="/role/#collapseRole{{role.id}}">{{role}}</a>
+              </td>
+              <td class="text-end">
+                <a href="#" id="del_{{role.id}}_profile_{{profile.id}}"">
+                  <i class="fa fa-times text-danger" aria-hidden="true"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <a href="#" class="text-decoration-none"><i class="fa fa-plus" aria-hidden="true"></i> добавить новую роль</a>
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane fade" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Раздел</th>
+          <th scope="col" class="text-end">Уровень доступа</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for access_level in access_level_roles %}
+        <tr>
+          <td>
+            <a href="">{{access_level.section}}</a>
+          </td>
+          <td class="text-end">
+            <a href="#" id="">
+              {{access_level.access_level}}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+{% endblock %}

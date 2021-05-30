@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'import_export',
     'reversion',
     'adminsortable2',
+    'compressor',
     'mptt',
 
     'account',
@@ -69,6 +70,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                'account.context_processor.get_global_context',
             ],
         },
     },
@@ -125,5 +128,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+
+    'compressor.finders.CompressorFinder',
+)
+
+EMAIL_BACKEND = "mailer.backend.DbBackend"
 
 from auth_module.local_settings import *

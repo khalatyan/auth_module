@@ -4,15 +4,102 @@ import datetime
 import hashlib
 import uuid
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import TemplateView, ListView, DetailView
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.db import transaction
+
 
 from django.contrib.auth.models import User
 from account.models import *
 
+
+class PersonalAccountView(TemplateView):
+    template_name = 'index.html'
+
+
+    def get(self, request, *args, **kwargs):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied()
+
+        return redirect('/roles')
+
+
+class RolesView(TemplateView):
+    template_name = 'roles.html'
+
+
+    def get(self, request, *args, **kwargs):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied()
+
+        company = Company.objects.filter(moderator=self.request.user).first()
+        roles = Role.objects.filter(company=company)
+        access_levels = AccessLevel_Section_Role.objects.filter(role__in=roles)
+
+        roles_items = []
+
+        for role in roles:
+            access_levels = AccessLevel_Section_Role.objects.filter(role=role)
+            roles_items.append([role, access_levels])
+
+        context = super().get_context_data(**kwargs)
+        context["role"] = True
+        context["roles"] = roles_items
+        response = render(request, self.template_name, context)
+
+        return response
+
+
+class ProfilesView(TemplateView):
+    template_name = 'profiles.html'
+
+
+    def get(self, request, *args, **kwargs):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied()
+
+        company = Company.objects.filter(moderator=self.request.user).first()
+        roles = Role.objects.filter(company=company)
+
+        profiles_item = []
+        profiles = Profile.objects.filter(roles__in=roles).distinct()
+        for profile in profiles:
+            profiles_item.append([profile, profile.roles.values_list('title', flat=True)])
+
+        context = super().get_context_data(**kwargs)
+        context["profile"] = True
+        context["profiles"] = profiles_item
+        response = render(request, self.template_name, context)
+
+        return response
+
+
+
+def single_profile(request, profile_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied()
+
+    company = Company.objects.filter(moderator=request.user).first()
+    profile = Profile.objects.filter(id=profile_id).first()
+    all_roles = Role.objects.filter(company=company)
+    profile_roles = profile.roles.values_list('title', flat=True)
+
+    access_level_roles = AccessLevel_Section_User.objects.filter(user=profile)
+    sections = Section.objects.filter(company=company)
+
+    response = render(request, 'single_profile.html', locals())
+    response['Cache-Control'] = 'no-cache, must-revalidate'
+    return response
+
+
+
+
 @csrf_exempt
+@transaction.atomic
 def registration( request ):
     profile = None
 
@@ -56,7 +143,7 @@ def registration( request ):
                 profile.roles.add(role)
 
             for key in access_levels:
-                section = Section.objects.filter(Q(title=key) & Q(company=organization)).first()
+                section = Section.objects.filter(Q(title=key) & Q(company=organization))
                 access_level_user = AccessLevel_Section_User.objects.create (
                     user=profile,
                     section=section,
@@ -84,3 +171,14 @@ def registration( request ):
 
 
     return JsonResponse( { "status": True } )
+
+
+@csrf_exempt
+@transaction.atomic
+def auth( request ):
+    profiles = Profile.objects.all()
+    l = []
+    for p in profiles:
+        l.append(p.token)
+
+    return JsonResponse( { "status": l } )
