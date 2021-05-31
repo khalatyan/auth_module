@@ -1,8 +1,10 @@
 import uuid
-
+import jwt
+from datetime import datetime, timedelta
 
 from django.db import models
 from django.db.models import Q
+from django.conf import settings
 from django.contrib.auth.models import User
 
 from mptt.models import MPTTModel, TreeForeignKey
@@ -81,22 +83,23 @@ class Profile(models.Model):
 
     def save(self, *args, **kwargs):
 
-        roles = self.roles.values_list('id', flat=True)
-        acces_level_roles = AccessLevel_Section_Role.objects.filter(role__in=roles)
+        if self.id:
+            roles = self.roles.values_list('id', flat=True)
+            acces_level_roles = AccessLevel_Section_Role.objects.filter(role__in=roles)
 
-        for acces_leve_role in acces_level_roles:
-            access_level_profile = AccessLevel_Section_User.objects.filter(Q(user=self) & Q(section=acces_leve_role.section)).first()
+            for acces_leve_role in acces_level_roles:
+                access_level_profile = AccessLevel_Section_User.objects.filter(Q(user=self) & Q(section=acces_leve_role.section)).first()
 
-            if not access_level_profile:
-                AccessLevel_Section_User.objects.create(
-                    user=self,
-                    access_level=acces_leve_role.access_level,
-                    section=acces_leve_role.section
-                )
-            elif (access_level_profile.access_level < acces_leve_role.access_level):
-                access_level_profile.access_level = acces_leve_role.access_level
-                access_level_profile.save()
-                
+                if not access_level_profile:
+                    AccessLevel_Section_User.objects.create(
+                        user=self,
+                        access_level=acces_leve_role.access_level,
+                        section=acces_leve_role.section
+                    )
+                elif (access_level_profile.access_level < acces_leve_role.access_level):
+                    access_level_profile.access_level = acces_leve_role.access_level
+                    access_level_profile.save()
+
         super().save(*args, **kwargs)
 
 
