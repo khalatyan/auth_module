@@ -18,6 +18,11 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from account.models import *
 
+ACCESS_LEVEL = {
+    1: 'Запрет',
+    2: 'Чтение',
+    3: 'Редактирование',
+}
 
 class PersonalAccountView(TemplateView):
     template_name = 'index.html'
@@ -153,17 +158,23 @@ def registration( request ):
 
             for role in organization_roles:
                 profile.roles.add(role)
+                acces_level_roles = AccessLevel_Section_Role.objects.filter(role=role)
+                for acces_level_role in acces_level_roles:
+                    _set_access_level_user_from_role(
+                        profile=profile,
+                        section=acces_level_role.section,
+                        access_level=acces_level_role.access_level
+                    )
 
             for key in access_levels:
                 section = Section.objects.filter(Q(title=key) & Q(company=organization)).first()
 
                 if (section and profile):
-                    access_level_user = AccessLevel_Section_User.objects.create (
-                        user=profile,
+                    _set_access_level_user_from_role(
+                        profile=profile,
                         section=section,
                         access_level=access_levels[key]
                     )
-                access_level_user.save()
 
         except:
             return JsonResponse (
@@ -276,17 +287,23 @@ def auth_for_organization( request ):
 
                 for role in organization_roles:
                     profile.roles.add(role)
+                    acces_level_roles = AccessLevel_Section_Role.objects.filter(role=role)
+                    for acces_level_role in acces_level_roles:
+                        _set_access_level_user_from_role(
+                            profile=profile,
+                            section=acces_level_role.section,
+                            access_level=acces_level_role.access_level
+                        )
 
                 for key in access_levels:
                     section = Section.objects.filter(Q(title=key) & Q(company=organization)).first()
 
                     if (section and profile):
-                        access_level_user = AccessLevel_Section_User.objects.create (
-                            user=profile,
+                        _set_access_level_user_from_role(
+                            profile=profile,
                             section=section,
                             access_level=access_levels[key]
                         )
-                    access_level_user.save()
             except:
                 return JsonResponse (
                     {
@@ -342,12 +359,25 @@ def get_profile_access_levels(profile, self_organization_id):
         if role_item.company.organization_id == self_organization_id:
             access_level_token["roles"].append(role_item.title)
 
-    print (access_level_token)
     return access_level_token
 
 
 def _generate_jwt_token(profile, organization_id):
     token = jwt.encode(get_profile_access_levels(profile, organization_id), settings.SECRET_KEY, algorithm='HS256')
 
-    print(token)
     return token
+
+def _set_access_level_user_from_role(profile, access_level, section):
+    access_level_user = AccessLevel_Section_User.objects.filter(Q(user=profile) & Q(section=section)).first()
+
+    if access_level_user:
+        if int(access_level) > access_level_user.access_level:
+            access_level_user.access_level = access_level
+            access_level_user.save()
+    else:
+        access_level_user = AccessLevel_Section_User.objects.create(
+            user=profile,
+            section=section,
+            access_level=access_level
+        )
+        access_level_user.save()
