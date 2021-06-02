@@ -121,7 +121,6 @@ class RolesView(TemplateView):
         context["all_roles"] = Role.objects.filter(company=company)
         context["warning"] = warning
         response = render(request, self.template_name, context)
-        print(warning)
 
         return response
 
@@ -155,13 +154,68 @@ def single_profile(request, profile_id):
     if not request.user.is_superuser:
         raise PermissionDenied()
 
+    if "del_role" in request.GET:
+        profile = Profile.objects.filter(id=profile_id).first()
+        role_id = request.GET.get("role_id")
+        try:
+            my_role = Role.objects.get(id=role_id)
+            profile.roles.remove(my_role)
+        except:
+            print("Не удается удалить")
+    elif "add_new_role" in request.GET:
+        profile = Profile.objects.filter(id=profile_id).first()
+        role_id = request.GET.get("role_id")
+        try:
+            my_role = Role.objects.get(id=role_id)
+            profile.roles.add(my_role)
+        except:
+            print("Не удается удалить")
+    elif "add_new_access_level" in request.GET:
+        section_id = request.GET.get("section_id")
+        access_level_id = request.GET.get("access_level_id")
+        access_level_user = AccessLevel_Section_User.objects.filter(section=section_id)
+        profile = Profile.objects.filter(id=profile_id).first()
+
+        if (access_level_user):
+            warning="Уровень досутпа для этого раздела уже задан"
+        else:
+            section = Section.objects.get(id=section_id)
+            access_level_user = AccessLevel_Section_User.objects.create(
+                section=section,
+                access_level=access_level_id,
+                user=profile
+            )
+            access_level_user.save()
+    elif "del_access_level" in request.GET:
+        access_level_id = request.GET.get("access_level")
+        try:
+            access_level_item = AccessLevel_Section_User.objects.get(id=access_level_id)
+            access_level_item.delete()
+        except:
+            print("Не удается удалить")
+    elif "edit_access_level" in request.GET:
+        access_level_item = AccessLevel_Section_User.objects.get(id=request.GET.get("access_level_id"))
+        access_level_value = request.GET.get("access_level_value")
+
+        access_level_item.access_level = access_level_value
+        access_level_item.save()
+
+
     company = Company.objects.filter(moderator=request.user).first()
     profile = Profile.objects.filter(id=profile_id).first()
-    all_roles = Role.objects.filter(company=company)
-    profile_roles = profile.roles.values_list('title', flat=True)
+    profile_roles_ = profile.roles.values_list('id', flat=True)
+    profile_roles = Role.objects.filter(id__in=profile_roles_).distinct()
+    all_roles = Role.objects.filter(company=company).exclude(id__in=profile_roles_)
 
-    access_level_roles = AccessLevel_Section_User.objects.filter(user=profile)
+    company_section = Section.objects.filter(company=company)
+
+    access_level_roles = AccessLevel_Section_User.objects.filter(Q(user=profile) & Q(section__in=company_section))
     sections = Section.objects.filter(company=company)
+    all_access_levels = [
+                [1, 'Запрет'],
+                [2, 'Чтение'],
+                [3, 'Редактирование'],
+    ]
 
     response = render(request, 'single_profile.html', locals())
     response['Cache-Control'] = 'no-cache, must-revalidate'
