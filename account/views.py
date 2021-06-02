@@ -43,6 +43,62 @@ class RolesView(TemplateView):
         if not self.request.user.is_superuser:
             raise PermissionDenied()
 
+        warning = False
+
+        if "delete" in request.GET:
+            delete_id = request.GET.get("delete")
+            try:
+                object = AccessLevel_Section_Role.objects.get(id=delete_id)
+                object.delete()
+            except:
+                print("Ошибка удаления уровня доступа")
+        elif "add" in request.GET:
+            section_new = Section.objects.get(id=request.GET.get("section"))
+            role_new = Role.objects.get(id=request.GET.get("role"))
+            access_level_new = request.GET.get("access_level")
+
+            object = AccessLevel_Section_Role.objects.filter(Q(role=role_new) & Q(section=section_new))
+
+            if (object):
+                warning = "Уже указан уровень доступа для этого раздела"
+            else:
+                object = AccessLevel_Section_Role.objects.create(
+                    role=role_new,
+                    section=section_new,
+                    access_level=access_level_new
+                )
+                object.save()
+        elif "add_role" in request.GET:
+            role_title = request.GET.get("role")
+            company = Company.objects.filter(moderator=self.request.user).first()
+            role = Role.objects.filter(title=role_title)
+
+            if (role):
+                warning="Такая роль уже существует"
+            else:
+                role = Role.objects.create(
+                    title=role_title,
+                    company=company
+                )
+                role.save()
+        elif "del_role" in request.GET:
+            role_id = request.GET.get("role_id")
+            try:
+                role = Role.objects.get(id=role_id)
+                role.delete()
+            except:
+                print("Ошибка удаления роли")
+        else:
+            for elem_id in request.GET:
+                access_level_value = request.GET.get(elem_id)
+
+                try:
+                    object = AccessLevel_Section_Role.objects.get(id=elem_id)
+                    object.access_level = access_level_value
+                    object.save()
+                except:
+                    print("Ошибка при изменении уровня доступа")
+
         company = Company.objects.filter(moderator=self.request.user).first()
         roles = Role.objects.filter(company=company)
         access_levels = AccessLevel_Section_Role.objects.filter(role__in=roles)
@@ -56,7 +112,16 @@ class RolesView(TemplateView):
         context = super().get_context_data(**kwargs)
         context["role"] = True
         context["roles"] = roles_items
+        context["all_access_levels"] = [
+            [1, 'Запрет'],
+            [2, 'Чтение'],
+            [3, 'Редактирование'],
+        ]
+        context["all_sections"] = Section.objects.filter(company=company)
+        context["all_roles"] = Role.objects.filter(company=company)
+        context["warning"] = warning
         response = render(request, self.template_name, context)
+        print(warning)
 
         return response
 

@@ -3,16 +3,22 @@
 {% load static %}
 
 {% block content %}
-
+{% if warning %}
+  <div id="empty_alert" class="alert alert-danger my-3" role="alert">
+    {{warning}}
+  </div>
+{% endif %}
 <div class="accordion" id="accordionExample">
   {%for item in roles%}
-    <div class="card">
+    <div class="card mb-3">
       <div class="card-header" id="headingOne">
-        <h2 class="mb-0">
+        <div class="mb-0 d-flex justify-content-between">
           <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapseRole{{item.0.id}}" aria-expanded="true" aria-controls="collapseOne">
             {{item.0}}
           </button>
-        </h2>
+
+          <button id="del_role_{{item.0.id}}" class="btn btn-danger btn-sm" type="button" name="button">Удалить</button>
+        </div>
       </div>
 
       <div id="collapseRole{{item.0.id}}" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
@@ -21,7 +27,7 @@
             <thead>
               <tr>
                 <th scope="col">Раздел</th>
-                <th scope="col">Роль</th>
+                <th scope="col" class="d-none">Роль</th>
                 <th scope="col">Уровень доступа</th>
                 <th class="text-center" scope="col">Редактировать</th>
                 <th class="text-center" scope="col">Удалить</th>
@@ -31,20 +37,132 @@
               {% for access_level in item.1%}
               <tr id="el_{{access_level.id}}">
                 <td>{{access_level.section}}</td>
-                <td>{{access_level.role}}</td>
+                <td class="d-none">{{access_level.role}}</td>
                 <td>{{access_level.access_level}}</td>
-                <td class="text-center"><i class="fa fa-pencil text-primary" aria-hidden="true" id="red_{{access_level.id}}"></i></td>
-                <td class="text-center"><i class="fa fa-times text-danger" aria-hidden="true" id="del_{{access_level.id}}"></i></td>
+                <td class="text-center"><a class="btn" id="edit_{{access_level.id}}"><i class="fa fa-pencil text-primary" aria-hidden="true"></i></a></td>
+                <td class="text-center"><a class="btn" id="del_{{access_level.id}}"><i class="fa fa-times text-danger" aria-hidden="true"></i></a></td>
+              </tr>
+
+              <tr id="el_edit_{{access_level.id}}" style="display:none;">
+                <td>{{access_level.section}}</td>
+                <td class="d-none">{{access_level.role}}</td>
+                <td>
+                  <select id="access_level_id_{{access_level.id}}" name="select_edit_access_level{{access_level.id}}" data-placeholder="Уровень доступа" class="chosen-select model-select">
+                      {% for access_level_ in all_access_levels %}
+                      <option value="{{ access_level_.0 }}" {% if access_level_.0 == access_level.access_level %}selected{% endif %}>{{ access_level_.1 }}</option>
+                      {% endfor %}
+                  </select>
+                </td>
+                <td class="text-center"></td>
+                <td class="text-center"></td>
               </tr>
               {% endfor %}
+              <tr id="edit_new_access_level_{{item.0.id}}" style="display:none;">
+                <td>
+                  <select id="new_access_level_section_{{item.0.id}}" name="edit_new_access_level_section" data-placeholder="Раздел" class="chosen-select model-select">
+                      <option value="{{ all_sections.0.id }}" selected>{{ all_sections.0.title }}</option>
+                      {% for section_item in all_sections %}
+                      <option value="{{ section_item.id }}">{{ section_item.title }}</option>
+                      {% endfor %}
+                  </select>
+                </td>
+                <td class="d-none">
+                  {{item.0}}
+                </td>
+                <td>
+                  <select id="new_access_level_access_level_{{item.0.id}}" name="select_edit_access_level" data-placeholder="Уровень доступа" class="chosen-select model-select">
+                      <option value="{{ all_access_levels.0.0 }}" selected>{{ all_access_levels.0.1 }}</option>
+                      {% for access_level_ in all_access_levels %}
+                      <option value="{{ access_level_.0 }}">{{ access_level_.1 }}</option>
+                      {% endfor %}
+                  </select>
+                </td>
+                <td class="text-center"></td>
+                <td class="text-center"><a id="add_new_acces_level_btn__{{item.0.id}}" class="btn btn-primary">Добавить</a></td>
+              </tr>
             </tbody>
           </table>
-          <a href="#" class="text-decoration-none"><i class="fa fa-plus" aria-hidden="true"></i> добавить уровень доступа</a>
+          <div class="d-flex justify-content-between">
+            <a id="add_new_item_{{item.0.id}}" class="btn text-decoration-none"><i class="fa fa-plus" aria-hidden="true"></i> добавить уровень доступа</a>
+            <a id="save_role_{{item.0.id}}" class="btn btn-primary me-3" style="display:none;">Сохранить</a>
+          </div>
         </div>
       </div>
     </div>
   {% endfor %}
+  <div id="empty_alert" class="alert alert-danger my-3" role="alert" style="display:none">
+    Вы ввели пустое значение
+  </div>
+  <div class="input-group my-3" id="add_new_role_block" style="display:none">
+    <span class="input-group-text" id="inputGroup-sizing-default">Название роли</span>
+    <input id="add_new_role_value" type="text" class="form-control" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+    <button id="add_new_role_button" class="btn btn-outline-secondary" type="button">Добавить</button>
+  </div>
+  <a id="add_new_role" class="btn text-decoration-none"><i class="fa fa-plus" aria-hidden="true"></i> добавить новую роль</a>
 </div>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+<script type="text/javascript">
+{%for item in roles%}
+  {% for access_level in item.1%}
+    $('#edit_{{access_level.id}}').click(function() {
+      $('#el_edit_{{access_level.id}}').show();
+      $('#el_{{access_level.id}}').hide();
+
+      $('#save_role_{{item.0.id}}').show();
+    });
+
+    $('#del_{{access_level.id}}').click(function() {
+      location.href="?delete={{access_level.id}}";
+    });
+  {% endfor %}
+
+  $('#save_role_{{item.0.id}}').click(function() {
+    url = "?"
+    {% for access_level in item.1%}
+      elem = document.querySelector('#access_level_id_{{access_level.id}}').value;
+      url += "{{access_level.id}}=" + elem + "&"
+    {% endfor %}
+    location.href=url;
+  });
+
+  $('#add_new_item_{{item.0.id}}').click(function() {
+    $('#edit_new_access_level_{{item.0.id}}').show();
+  });
+
+  $('#add_new_acces_level_btn__{{item.0.id}}').click(function() {
+    new_section = document.querySelector('#new_access_level_section_{{item.0.id}}').value;
+    new_role = {{item.0.id}};
+    new_access_level = document.querySelector('#new_access_level_access_level_{{item.0.id}}').value;
+
+    url = "?add=True&section=" + new_section + "&role=" + new_role + "&access_level=" + new_access_level
+    location.href=url;
+  });
+
+  $('#del_role_{{item.0.id}}').click(function() {
+    url = "?del_role=True&role_id={{item.0.id}}"
+    location.href=url;
+  });
+
+{% endfor %}
+
+$('#add_new_role').click(function() {
+  $('#add_new_role').hide();
+  $('#add_new_role_block').show();
+});
+
+$('#add_new_role_button').click(function() {
+  value = document.querySelector('#add_new_role_value').value;
+  if (value.replace(/\s/g, '').length >= 1) {
+    url = "?add_role=True&role=" + value;
+    location.href=url;
+  } else {
+    $('#empty_alert').show();
+  }
+});
+
+
+</script>
 
 
 {% endblock %}
