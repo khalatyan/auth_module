@@ -10,6 +10,8 @@
               <tr>
                 <th scope="col">Пользователь</th>
                 <th scope="col">Роль</th>
+                <th scope="col">Редактировать</th>
+                <th scope="col">Удалить</th>
               </tr>
             </thead>
             <tbody>
@@ -25,9 +27,23 @@
                   <a href="/roles">{{role}}</a>
                   {% endfor %}
                 </td>
+                <td>
+                  <a class="btn" href="/profiles/user_{{item.0.id}}"><i class="fa fa-pencil text-primary" aria-hidden="true"></i></a>
+                </td>
+                <td>
+                  <a class="btn" id="delete_user_{{item.0.id}}"><i class="fa fa-times text-danger" aria-hidden="true"></i></a>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
 
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+  <script type="text/javascript">
+    {% for item in profiles %}
+      $('#delete_user_{{item.0.id}}').click(function() {
+        location.href="?delete_role={{item.0.id}}";
+      });
+    {% endfor %}
+  </script>
 {% endblock %}

@@ -56,6 +56,15 @@ class Section(MPTTModel):
     class MPTTMeta:
         order_insertion_by = ['title']
 
+    def get_children(self):
+        return Section.objects.filter(parent=self)
+
+    def get_children_bool(self):
+        section = Section.objects.filter(parent=self).first()
+        if section:
+            return True
+        else:
+            return False
 
 class Role(models.Model):
     class Meta:

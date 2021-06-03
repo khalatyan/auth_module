@@ -186,13 +186,28 @@ class ProfilesView(TemplateView):
         if not self.request.user.is_superuser:
             raise PermissionDenied()
 
+        warning = False
+
         company = Company.objects.filter(moderator=self.request.user).first()
         roles = Role.objects.filter(company=company)
 
+        if "delete_role" in self.request.GET:
+            user_id = self.request.GET.get("delete_role")
+            profile = Profile.objects.get(id=user_id)
+            profile_roles_ = profile.roles.values_list('id', flat=True)
+            profile_roles = Role.objects.filter(Q(id__in=profile_roles_) & Q(company=company)).distinct()
+
+            for role in profile_roles:
+                profile.roles.remove(role)
+
+
         profiles_item = []
         profiles = Profile.objects.filter(roles__in=roles).distinct()
+
         for profile in profiles:
-            profiles_item.append([profile, profile.roles.values_list('title', flat=True)])
+            profile_roles_ = profile.roles.values_list('id', flat=True)
+            profile_roles = Role.objects.filter(Q(id__in=profile_roles_) & Q(company=company)).distinct()
+            profiles_item.append([profile, profile_roles])
 
         context = super().get_context_data(**kwargs)
         context["profile"] = True
@@ -283,7 +298,7 @@ def single_profile(request, profile_id):
     company = Company.objects.filter(moderator=request.user).first()
     profile = Profile.objects.filter(id=profile_id).first()
     profile_roles_ = profile.roles.values_list('id', flat=True)
-    profile_roles = Role.objects.filter(id__in=profile_roles_).distinct()
+    profile_roles = Role.objects.filter(Q(id__in=profile_roles_) & Q(company=company)).distinct()
     all_roles = Role.objects.filter(company=company).exclude(id__in=profile_roles_)
 
     company_section = Section.objects.filter(company=company)
@@ -312,6 +327,28 @@ class SectionsView(TemplateView):
         all_sections = Section.objects.filter(company=company)
         parent_secions = Section.objects.filter(Q(company=company) & Q(parent=None))
 
+        if "del_section" in request.GET:
+            section = Section.objects.filter(id=request.GET.get("section"))
+            section.delete()
+
+        if "add_section" in request.GET:
+            parent = Section.objects.filter(id=request.GET.get("parent")).first()
+            value = request.GET.get("value")
+            if parent:
+                section = Section.objects.create(
+                    title=value,
+                    parent=parent,
+                    company=company
+                )
+            else:
+                section = Section.objects.create(
+                    title=value,
+                    company=company
+                )
+            section.save()
+            # section = Section.objects.filter(id=request.GET.get("section"))
+            # section.delete()
+
         # for section in parent_secions:
         #     childrens = section.children.all()
 
@@ -319,9 +356,11 @@ class SectionsView(TemplateView):
         context = super().get_context_data(**kwargs)
         context["section_link"] = True
         context["all_sections"] = all_sections
+        context["parent_secions"] = parent_secions
         response = render(request, self.template_name, context)
 
         return response
+
 
 @csrf_exempt
 @transaction.atomic
