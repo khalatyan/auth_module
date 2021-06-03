@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load account %}
+
+{% block content %}
+
+
+
+{% for section in all_sections %}
+  {% if not section.parent %}
+    <p>{{section}}</p>
+    {% getChildren section=section %}
+  {% endif %}
+{% endfor %}
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+
+{% endblock %}

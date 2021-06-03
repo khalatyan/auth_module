@@ -32,7 +32,7 @@
             {% for role in profile_roles %}
             <tr>
               <td class="text-start">
-                <a href="/role/#collapseRole{{role.id}}">{{role}}</a>
+                <a href="/roles">{{role}}</a>
               </td>
               <td class="text-end">
                 <a class="btn p-0" id="del_role_{{role.id}}">
@@ -94,7 +94,7 @@
             <a href="">{{access_level.section}}</a>
           </td>
           <td>
-            <select id="new_access_level_id_{{access_level.id}}" name="new_access_level_id" data-placeholder="Роль" class="chosen-select model-select">
+            <select id="new_access_level_id_{{access_level.id}}" name="new_access_level_id_{{access_level.id}}" data-placeholder="Роль" class="chosen-select model-select">
                 {% for access_level_ in all_access_levels %}
                 <option value="{{ access_level_.0 }}" {% if access_level_.0 == access_level.access_level %}selected{% endif %}>{{ access_level_.1 }}</option>
                 {% endfor %}
@@ -113,9 +113,9 @@
             </select>
           </td>
           <td>
-            <select id="new_access_level_id" name="new_access_level_id" data-placeholder="Роль" class="chosen-select model-select">
+            <select id="new_access_level_access_id" name="new_access_level_access_id" data-placeholder="Уровень доступа" class="chosen-select model-select">
                 {% for access_level_ in all_access_levels %}
-                <option value="{{ access_level.0 }}">{{ access_level.1 }}</option>
+                <option value="{{ access_level_.0 }}">{{ access_level_.1 }}</option>
                 {% endfor %}
             </select>
           </td>
@@ -173,7 +173,7 @@
 
   $('#save_new_acces_level_btn').click(function() {
     section = document.querySelector('#new_access_level_section_id').value;
-    access_level = document.querySelector('#new_access_level_id').value;
+    access_level = document.querySelector('#new_access_level_access_id').value;
     url = "?add_new_access_level=True&section_id=" + section + "&access_level_id=" + access_level;
     location.href=url;
   });

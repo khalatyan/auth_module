@@ -14,5 +14,6 @@ urlpatterns = [
     path('roles/', account_views.RolesView.as_view(), name='roles_view'),
     path('profiles/', account_views.ProfilesView.as_view(), name='profiles_view'),
     path('profiles/user_<str:profile_id>', account_views.single_profile, name='single_profiles_view'),
+    path('sections/', account_views.SectionsView.as_view(), name='sections_view'),
 
 ]

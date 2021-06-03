@@ -49,9 +49,21 @@ class RolesView(TemplateView):
             delete_id = request.GET.get("delete")
             try:
                 object = AccessLevel_Section_Role.objects.get(id=delete_id)
+                this_role = object.role
+                access_level_section = object.section
+                access_level_acces_level = object.access_level
+
+                peoples = Profile.objects.filter(roles__in=[this_role])
                 object.delete()
+
+                for profile in peoples:
+                    access_level_user = AccessLevel_Section_User.objects.filter(Q(user=profile) & \
+                        Q(section=access_level_section) & Q(access_level=access_level_acces_level))
+                    if access_level_user:
+                        access_level_user.delete()
             except:
-                print("Ошибка удаления уровня доступа")
+                warning = "Ошибка удаления уровня доступа"
+
         elif "add" in request.GET:
             section_new = Section.objects.get(id=request.GET.get("section"))
             role_new = Role.objects.get(id=request.GET.get("role"))
@@ -62,6 +74,21 @@ class RolesView(TemplateView):
             if (object):
                 warning = "Уже указан уровень доступа для этого раздела"
             else:
+                peoples = Profile.objects.filter(roles__in=[role_new])
+                for profile in peoples:
+                    access_level_user = AccessLevel_Section_User.objects.filter(Q(user=profile) & \
+                        Q(section=section_new)).first()
+                    if access_level_user:
+                        if int(access_level_user.access_level) <= int(access_level_new):
+                            access_level_user.access_level = access_level_new
+                    else:
+                        access_level_user = AccessLevel_Section_User.objects.create(
+                            user=profile,
+                            section=section_new,
+                            access_level=access_level_new
+                        )
+                    access_level_user.save()
+
                 object = AccessLevel_Section_Role.objects.create(
                     role=role_new,
                     section=section_new,
@@ -85,19 +112,45 @@ class RolesView(TemplateView):
             role_id = request.GET.get("role_id")
             try:
                 role = Role.objects.get(id=role_id)
+                acces_level_roles = AccessLevel_Section_Role.objects.filter(role=role)
+
+                peoples = Profile.objects.filter(roles__in=[role])
+                for profile in peoples:
+                    for access_level_role in acces_level_roles:
+                        access_level_user = AccessLevel_Section_User.objects.filter(Q(user=profile) & \
+                            Q(section=access_level_role.section) & Q(access_level=access_level_role.access_level)).first()
+                        if access_level_user:
+                            access_level_user.delete()
+
                 role.delete()
             except:
-                print("Ошибка удаления роли")
+                warning = "Ошибка удаления роли"
         else:
             for elem_id in request.GET:
                 access_level_value = request.GET.get(elem_id)
 
                 try:
                     object = AccessLevel_Section_Role.objects.get(id=elem_id)
+
+                    peoples = Profile.objects.filter(roles__in=[object.role])
+                    for profile in peoples:
+                        access_level_user = AccessLevel_Section_User.objects.filter(Q(user=profile) & \
+                            Q(section=object.section)).first()
+                        if access_level_user:
+                            if int(access_level_user.access_level) <= int(access_level_value):
+                                access_level_user.access_level = access_level_value
+                        else:
+                            access_level_user = AccessLevel_Section_User.objects.create(
+                                user=profile,
+                                section=object.section,
+                                access_level=access_level_value
+                            )
+                        access_level_user.save()
+
                     object.access_level = access_level_value
                     object.save()
                 except:
-                    print("Ошибка при изменении уровня доступа")
+                    warning = "Ошибка при редактировании уровня доступа"
 
         company = Company.objects.filter(moderator=self.request.user).first()
         roles = Role.objects.filter(company=company)
@@ -154,22 +207,48 @@ def single_profile(request, profile_id):
     if not request.user.is_superuser:
         raise PermissionDenied()
 
+    warning = False
     if "del_role" in request.GET:
         profile = Profile.objects.filter(id=profile_id).first()
         role_id = request.GET.get("role_id")
         try:
             my_role = Role.objects.get(id=role_id)
+            access_levels_role = AccessLevel_Section_Role.objects.filter(role=my_role)
+
+            for access_level_role in access_levels_role:
+                access_level_user = AccessLevel_Section_User.objects.filter( \
+                    Q(section=access_level_role.section) \
+                    & Q(access_level=access_level_role.access_level)).first()
+                if access_level_user:
+                    access_level_user.delete()
             profile.roles.remove(my_role)
         except:
-            print("Не удается удалить")
+            warning = "Ошибка во время удаления роли"
+
     elif "add_new_role" in request.GET:
         profile = Profile.objects.filter(id=profile_id).first()
         role_id = request.GET.get("role_id")
         try:
             my_role = Role.objects.get(id=role_id)
             profile.roles.add(my_role)
+
+            access_levels_role = AccessLevel_Section_Role.objects.filter(role=my_role)
+
+            for access_level_role in access_levels_role:
+                access_level_user = AccessLevel_Section_User.objects.filter(\
+                    Q(user=profile) & Q(section=access_level_role.section))
+                if access_level_user:
+                    if int(access_level_user.access_level) <= int(access_level_role.access_level):
+                        access_level_user.access_level = access_level_role.access_level
+                else:
+                    access_level_user = AccessLevel_Section_User.objects.create(
+                        user=profile,
+                        section=access_level_role.section,
+                        access_level=access_level_role.access_level
+                    )
         except:
-            print("Не удается удалить")
+            warning = "Ошибка во время добавления роли"
+
     elif "add_new_access_level" in request.GET:
         section_id = request.GET.get("section_id")
         access_level_id = request.GET.get("access_level_id")
@@ -221,8 +300,28 @@ def single_profile(request, profile_id):
     response['Cache-Control'] = 'no-cache, must-revalidate'
     return response
 
+class SectionsView(TemplateView):
+    template_name = 'section.html'
 
 
+    def get(self, request, *args, **kwargs):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied()
+
+        company = Company.objects.filter(moderator=self.request.user).first()
+        all_sections = Section.objects.filter(company=company)
+        parent_secions = Section.objects.filter(Q(company=company) & Q(parent=None))
+
+        # for section in parent_secions:
+        #     childrens = section.children.all()
+
+
+        context = super().get_context_data(**kwargs)
+        context["section_link"] = True
+        context["all_sections"] = all_sections
+        response = render(request, self.template_name, context)
+
+        return response
 
 @csrf_exempt
 @transaction.atomic
@@ -500,3 +599,10 @@ def _set_access_level_user_from_role(profile, access_level, section):
             access_level=access_level
         )
         access_level_user.save()
+
+def getChildren(section):
+    children = Section.objects.filter(parent=section)
+    return children
+    # OR just format the data so it's returned in the format you like
+    # or you can return them as Person objects and have another method
+    # to transform each object in the format you like (e.g Person.asJSON())
