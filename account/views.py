@@ -328,7 +328,9 @@ class SectionsView(TemplateView):
         parent_secions = Section.objects.filter(Q(company=company) & Q(parent=None))
 
         if "del_section" in request.GET:
-            section = Section.objects.filter(id=request.GET.get("section"))
+            section = Section.objects.filter(id=request.GET.get("section")).first()
+            if section.get_children_bool():
+                del_children(section)
             section.delete()
 
         if "add_section" in request.GET:
@@ -346,11 +348,18 @@ class SectionsView(TemplateView):
                     company=company
                 )
             section.save()
-            # section = Section.objects.filter(id=request.GET.get("section"))
-            # section.delete()
 
-        # for section in parent_secions:
-        #     childrens = section.children.all()
+            if parent:
+                access_levels = AccessLevel_Section_Role.objects.filter(section=parent)
+
+                for access_level in access_levels:
+                    new_access_level = AccessLevel_Section_Role.objects.create(
+                        role=access_level.role,
+                        section=section,
+                        access_level=access_level.access_level
+                    )
+                    new_access_level.save()
+
 
 
         context = super().get_context_data(**kwargs)
@@ -645,3 +654,11 @@ def getChildren(section):
     # OR just format the data so it's returned in the format you like
     # or you can return them as Person objects and have another method
     # to transform each object in the format you like (e.g Person.asJSON())
+
+
+def del_children(obj):
+    children = obj.get_children()
+    for child in children:
+        if child.get_children_bool():
+            del_children(child)
+        child.delete()
